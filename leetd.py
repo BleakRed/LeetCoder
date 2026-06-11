@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -414,6 +415,13 @@ def cmd_show(args):
         print(code)
 
 
+def await_random(page, low=0.2, high=1.0):
+    import time
+    time.sleep(random.uniform(low, high))
+    page.mouse.move(random.randint(100, 800), random.randint(100, 600))
+    time.sleep(random.uniform(0.1, 0.3))
+
+
 def cmd_submit(args):
     filepath = Path(args.file)
     if not filepath.exists():
@@ -426,8 +434,10 @@ def cmd_submit(args):
         if m:
             slug = m.group(1)
         else:
-            print("Could not determine slug. Provide --slug.", file=sys.stderr)
-            sys.exit(1)
+            slug = re.sub(r'^\d{1,4}_', '', filepath.stem)
+            if not slug:
+                print("Could not determine slug. Provide --slug.", file=sys.stderr)
+                sys.exit(1)
 
     code = filepath.read_text()
     if args.lang:
@@ -462,34 +472,69 @@ def cmd_submit(args):
     submit_url = f"https://leetcode.com/problems/{slug}/submit/"
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=not args.visible)
-        ctx = browser.new_context()
+        browser = p.chromium.launch(
+            headless=not args.visible,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--no-sandbox",
+                "--disable-web-security",
+                "--disable-features=BlockInsecurePrivateNetworkRequests",
+            ],
+        )
+
+        ua = (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        )
+        ctx = browser.new_context(
+            user_agent=ua,
+            viewport={"width": 1920, "height": 1080},
+            locale="en-US",
+            timezone_id="America/New_York",
+            permissions=["clipboard-read", "clipboard-write"],
+        )
+
         page = ctx.new_page()
 
+        # Override navigator.webdriver and add randomness
+        page.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            window.chrome = { runtime: {} };
+        """)
+
         print("Logging into LeetCode...")
-        page.goto("https://leetcode.com/accounts/login/")
-        page.wait_for_selector('input[name="login"]', timeout=20000)
+        page.goto("https://leetcode.com/accounts/login/", wait_until="networkidle")
+        page.wait_for_selector('input[name="login"]', timeout=30000)
+        await_random(page, 0.3, 0.8)
         page.fill('input[name="login"]', leet_username)
+        await_random(page, 0.2, 0.5)
         page.fill('input[name="password"]', leet_password)
+        await_random(page, 0.3, 0.8)
         page.click('button[type="submit"]')
-        page.wait_for_url("https://leetcode.com/**", timeout=30000)
+        page.wait_for_url("https://leetcode.com/**", timeout=45000)
         print("Logged in!")
 
         print("Navigating to submission page...")
-        page.goto(submit_url)
+        page.goto(submit_url, wait_until="networkidle")
         page.wait_for_timeout(3000)
 
         try:
-            page.wait_for_selector('[class*="editor"]', timeout=15000)
+            page.wait_for_selector('[class*="editor"]', timeout=20000)
             editor = page.locator('[class*="editor"]').first
             editor.click()
+            await_random(page, 0.2, 0.5)
             page.keyboard.select_all()
             page.keyboard.press("Backspace")
-            page.keyboard.type(code, delay=10)
-            page.wait_for_timeout(500)
+            await_random(page, 0.3, 0.7)
+            page.keyboard.type(code, delay=15 + random.randint(0, 30))
+            page.wait_for_timeout(1000)
         except Exception as e:
             print(f"Editor interaction failed: {e}", file=sys.stderr)
 
+        await_random(page, 0.5, 1.5)
         submit_btn = page.locator('button:has-text("Submit")')
         if submit_btn.count() == 0:
             submit_btn = page.locator('[data-cy="submit-code-btn"]')
@@ -497,15 +542,16 @@ def cmd_submit(args):
             submit_btn = page.locator('button:has-text("Sub")')
 
         if submit_btn.count() > 0:
+            await_random(page, 0.3, 0.8)
             submit_btn.first.click()
             print("Submitted! Waiting for results...")
-            page.wait_for_timeout(15000)
+            page.wait_for_timeout(20000)
             ctx.storage_state(path=str(CONFIG_DIR / "auth.json"))
             print("Check the browser for results." if args.visible else "Session saved.")
         else:
             print("Could not find submit button.", file=sys.stderr)
 
-        if not args.visible:
+        if not args.visible and not args.keep_open:
             browser.close()
 
 
@@ -613,6 +659,7 @@ def main():
     p_submit.add_argument("-p", "--password", help="LeetCode password")
     p_submit.add_argument("--visible", action="store_true", help="Show browser (not headless)")
     p_submit.add_argument("--save-credentials", action="store_true", help="Save credentials to config")
+    p_submit.add_argument("--keep-open", action="store_true", help="Keep browser open after submission")
     p_submit.set_defaults(func=cmd_submit)
 
     p_solve = sub.add_parser("solve", help="Generate a prompt for an LLM to solve a problem")
