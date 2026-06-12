@@ -76,6 +76,8 @@ Then pipe `prompt.md` to any LLM.
 
 ### Submit a solution
 
+> **Note**: The submit feature is broken due to Cloudflare protections on LeetCode and is unlikely to be fixed.
+
 ```bash
 leetd submit solutions/python/0001_two_sum.py -u user -p pass
 leetd submit solutions/python/0001_two_sum.py --visible   # Watch the browser
