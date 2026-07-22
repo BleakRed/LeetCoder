@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "bundle_id": "ctx_5b0377f4ab8eacbf0bedb5e1",
+  "workspace": "/home/bleakred/Projects/LeetCoder",
+  "created_at": "2026-07-14T07:06:21Z",
+  "agent": "ATHENA CODE",
+  "task": "",
+  "curated_context": "",
+  "sources": [
+    {
+      "kind": "athena_code_memory",
+      "path": null,
+      "content": "",
+      "sha256": null,
+      "truncated": false
+    },
+    {
+      "kind": "session_recall",
+      "path": "/home/bleakred/Projects/LeetCoder/.context-workspace/hermes/session-recall.md",
+      "content": "",
+      "sha256": null,
+      "truncated": false
+    }
+  ],
+  "warnings": [
+    "No supported project instruction file was found.",
+    "No Athena Code memory was available.",
+    "No Athena session recall cache was available."
+  ],
+  "bundle_path": "/home/bleakred/Projects/LeetCoder/.context-workspace/context/ctx_5b0377f4ab8eacbf0bedb5e1/bundle.json",
+  "context_path": "/home/bleakred/Projects/LeetCoder/.context-workspace/context/ctx_5b0377f4ab8eacbf0bedb5e1/context.md"
+}

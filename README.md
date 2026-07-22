@@ -7,7 +7,6 @@ Automate LeetCode problem fetching, scaffolding, and submission from the command
 - **`leetd fetch [N]`** — Fetch any problem by number (or the daily challenge without a number) and scaffold a solution file with boilerplate test runners
 - **`leetd show -n N`** — Display problem description, hints, and starter code in the terminal
 - **`leetd solve [N]`** — Generate a complete LLM prompt with problem context and starter code
-- **`leetd submit <file>`** — Automatically submit a solution to LeetCode via Playwright
 - **`leetd list`** — List previously fetched solutions
 - **`leetd config`** — View or change configuration
 
@@ -74,7 +73,7 @@ leetd solve 1 -l cpp           # C++ prompt for Two Sum
 
 Then pipe `prompt.md` to any LLM.
 
-### Submit a solution
+### Submit a solution (It doesn't work due to Cloudflare blocking it)
 
 > **Note**: The submit feature is broken due to Cloudflare protections on LeetCode and is unlikely to be fixed.
 
